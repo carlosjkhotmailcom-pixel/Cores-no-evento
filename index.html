@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Câmera Cintilante - Frases com Cores, Sombra e Múltiplos Símbolos</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color, #0b021a);
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: background 0.5s ease;
+        }
+
+        body.theme-neon {
+            --bg-color: #0b021a;
+            --primary: #ff00aa;
+            --secondary: #00ffff;
+            --accent: #ffea00;
+            --card-bg: #150530;
+        }
+
+        body.theme-gold {
+            --bg-color: #120e04;
+            --primary: #ffd700;
+            --secondary: #ff8c00;
+            --accent: #ffffff;
+            --card-bg: #211906;
+        }
+
+        body.theme-purple {
+            --bg-color: #10061c;
+            --primary: #b000ff;
+            --secondary: #00ffcc;
+            --accent: #ff66b2;
+            --card-bg: #1c0d30;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-color);
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Botões Globais (Topo) */
+        .top-buttons {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            display: flex;
+            gap: 12px;
+        }
+
+        .global-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--secondary);
+            color: #fff;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 10px var(--secondary);
+            transition: transform 0.2s;
+        }
+
+        .global-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Modal de Configurações */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 3px solid var(--primary);
+            padding: 22px;
+            border-radius: 20px;
+            width: 92%;
+            max-width: 450px;
+            text-align: center;
+            box-shadow: 0 0 30px var(--primary);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h2 {
+            color: var(--accent);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .modal-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .modal-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--secondary);
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        .modal-group select, .modal-group input[type="text"] {
+            width: 100%;
+            padding: 9px;
+            border-radius: 10px;
+            border: 2px solid var(--secondary);
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        /* Grade de seleção de múltiplos símbolos */
+        .symbols-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid var(--secondary);
+            max-height: 130px;
+            overflow-y: auto;
+        }
+
+        .symbol-checkbox-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 4px;
+            transition: 0.2s;
+        }
+
+        .symbol-checkbox-label input {
+            display: none;
+        }
+
+        .symbol-checkbox-label input:checked + span {
+            transform: scale(1.2);
+            filter: drop-shadow(0 0 8px var(--accent));
+        }
+
+        .symbol-checkbox-label input:checked ~ * {
+            background: var(--primary);
+        }
+
+        .symbol-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            border-radius: 6px;
+        }
+
+        .symbol-checkbox-label input:checked + .symbol-box {
+            background: rgba(0, 255, 255, 0.2);
+            border: 1px solid var(--secondary);
+        }
+
+        .color-row-inline {
+            display: flex;
+            gap: 15px;
+        }
+
+        .color-row-inline > div {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: none;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: 2px solid #fff; border-radius: 50%; }
+
+        .close-modal-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--bg-color);
+            border: 2px solid #fff;
+            padding: 10px 25px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+
+        #home-screen {
+            background: radial-gradient(circle at center, var(--card-bg) 0%, var(--bg-color) 100%);
+            text-align: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        #home-screen h1 {
+            font-size: 2.6rem;
+            margin-bottom: 10px;
+            color: #fff;
+            text-shadow: 0 0 10px var(--primary), 0 0 25px var(--secondary);
+            animation: title-glow 2s infinite alternate;
+            letter-spacing: 2px;
+        }
+
+        @keyframes title-glow {
+            from { text-shadow: 0 0 10px var(--primary), 0 0 20px var(--secondary); }
+            to { text-shadow: 0 0 20px var(--accent), 0 0 40px var(--primary); }
+        }
+
+        #home-screen p {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            color: var(--secondary);
+            text-shadow: 0 0 8px var(--secondary);
+        }
+
+        .menu-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid var(--primary);
+            border-radius: 18px;
+            padding: 12px 20px;
+            margin-bottom: 15px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 0 15px rgba(255, 0, 170, 0.2);
+        }
+
+        .menu-section h3 {
+            font-size: 0.95rem;
+            color: var(--accent);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .options-grid {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .menu-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--secondary);
+            color: var(--secondary);
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+            transition: 0.3s;
+        }
+
+        .menu-btn.selected {
+            background: var(--secondary);
+            color: var(--bg-color);
+            box-shadow: 0 0 15px var(--secondary);
+        }
+
+        .color-picker-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            font-size: 0.9rem;
+            color: #fff;
+        }
+
+        .color-picker-row label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--bg-color);
+            border: 3px solid #ffffff;
+            padding: 14px 35px;
+            font-size: 1.2rem;
+            font-weight: 900;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 20px var(--primary), 0 0 40px var(--secondary);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 5px;
+        }
+
+        .start-btn:active {
+            transform: scale(0.95);
+        }
+
+        #camera-screen {
+            background: #000;
+        }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            transform: scaleX(-1);
+        }
+
+        video.filter-glow { filter: saturate(1.4) brightness(1.1) drop-shadow(0 0 10px rgba(0,255,255,0.3)); }
+        video.filter-bw { filter: grayscale(100%) contrast(1.3); }
+        video.filter-neon { filter: hue-rotate(90deg) saturate(2); }
+
+        .camera-overlay {
+            position: absolute;
+            bottom: 35px;
+            z-index: 3;
+            display: flex;
+            align-items: center;
+        }
+
+        .shutter-btn {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ffffff 30%, var(--primary) 70%, var(--secondary) 100%);
+            border: 5px solid var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 25px var(--primary), 0 0 50px var(--secondary);
+            transition: transform 0.1s;
+        }
+
+        .shutter-btn:active {
+            transform: scale(0.9);
+        }
+
+        #countdown {
+            position: absolute;
+            font-size: 11rem;
+            font-weight: 900;
+            color: var(--accent);
+            text-shadow: 0 0 15px var(--primary), 0 0 40px var(--secondary);
+            z-index: 5;
+            display: none;
+            animation: pulse-count 0.8s infinite alternate;
+        }
+
+        @keyframes pulse-count {
+            from { transform: scale(1); filter: brightness(1); }
+            to { transform: scale(1.12); filter: brightness(1.4); }
+        }
+
+        /* Tela de Resultado */
+        #result-screen {
+            background: radial-gradient(circle at center, var(--card-bg) 0%, var(--bg-color) 100%);
+            padding: 20px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .photo-strip {
+            background-color: var(--custom-bg, #150530);
+            border: 4px solid var(--custom-border, #ff00aa);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            max-width: 90vw;
+            max-height: 75vh;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .grid-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .grid-container.single {
+            flex-direction: column;
+        }
+
+        .grid-container img {
+            width: 320px;
+            height: 240px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: block;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            max-width: 450px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 12px 20px;
+            border: 2px solid;
+            border-radius: 12px;
+            font-weight: 900;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            flex: 1;
+        }
+
+        .btn-retry { 
+            background: var(--card-bg); 
+            color: #fff; 
+            border-color: #ffffff;
+        }
+        
+        .btn-print { 
+            background: var(--card-bg); 
+            color: var(--secondary); 
+            border-color: var(--secondary);
+        }
+        
+        .btn-download { 
+            background: var(--card-bg); 
+            color: var(--primary); 
+            border-color: var(--primary);
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.3);
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-strip, #printable-strip * {
+                visibility: visible;
+            }
+            #printable-strip {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                box-shadow: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="theme-neon">
+
+    <!-- Botões Globais (Topo Esquerdo) -->
+    <div class="top-buttons">
+        <button class="global-btn" onclick="toggleFullScreen()" title="Tela Cheia">⛶</button>
+        <button class="global-btn" onclick="toggleModal(true)" title="Configurações">⚙️</button>
+    </div>
+
+    <!-- Modal de Configurações Avançadas -->
+    <div class="modal-overlay" id="configModal">
+        <div class="modal-content">
+            <h2>⚙️ Configurações & Efeitos</h2>
+            
+            <div class="modal-group">
+                <label>✨ Escolha Múltiplos Símbolos para a Borda:</label>
+                <div class="symbols-grid">
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="⚡"><span class="symbol-box">⚡</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="🦋"><span class="symbol-box">🦋</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="🌟"><span class="symbol-box">🌟</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="✨"><span class="symbol-box">✨</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="💖"><span class="symbol-box">💖</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="❤️"><span class="symbol-box">❤️</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="💎"><span class="symbol-box">💎</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="🌸"><span class="symbol-box">🌸</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="🌹"><span class="symbol-box">🌹</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="🔥"><span class="symbol-box">🔥</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="🦄"><span class="symbol-box">🦄</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="🎶"><span class="symbol-box">🎶</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="👑"><span class="symbol-box">👑</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="🌈"><span class="symbol-box">🌈</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="🍓"><span class="symbol-box">🍓</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="🌙"><span class="symbol-box">🌙</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="☀️"><span class="symbol-box">☀️</span></label>
+                    <label class="symbol-checkbox-label"><input type="checkbox" value="🍀"><span class="symbol-box">🍀</span></label>
+                </div>
+            </div>
+
+            <div class="modal-group">
+                <label for="customPhraseInput">💬 Digite sua Frase:</label>
+                <input type="text" id="customPhraseInput" placeholder="Ex: Melhores Momentos 💖">
+            </div>
+
+            <div class="modal-group">
+                <label for="phrasePositionSelect">📍 Posição da Frase:</label>
+                <select id="phrasePositionSelect">
+                    <option value="top">Em Cima</option>
+                    <option value="middle">No Meio (entre as fotos)</option>
+                    <option value="bottom" selected>Em Baixo</option>
+                </select>
+            </div>
+
+            <div class="modal-group">
+                <div class="color-row-inline">
+                    <div>
+                        <label>Cor do Texto:</label>
+                        <input type="color" id="textColorPicker" value="#ffffff">
+                    </div>
+                    <div>
+                        <label>Cor da Sombra:</label>
+                        <input type="color" id="textShadowColorPicker" value="#ff00aa">
+                    </div>
+                </div>
+            </div>
+
+            <button class="close-modal-btn" onclick="toggleModal(false)">Salvar & Fechar</button>
+        </div>
+    </div>
+
+    <!-- 1. TELA INICIAL / MENU INTERATIVO -->
+    <div id="home-screen" class="screen active">
+        <h1>CÂMERA CINTILANTE</h1>
+        <p>Frases personalizadas, cores, sombras e múltiplos símbolos</p>
+        
+        <div class="menu-section">
+            <h3>Tema da Interface</h3>
+            <div class="options-grid">
+                <button class="menu-btn selected" onclick="setTheme('neon', this)">Neon</button>
+                <button class="menu-btn" onclick="setTheme('gold', this)">Gold</button>
+                <button class="menu-btn" onclick="setTheme('purple', this)">Purple</button>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <h3>Cores da Foto (Fundo e Borda)</h3>
+            <div class="color-picker-row">
+                <label>Fundo: <input type="color" id="bgColorPicker" value="#150530"></label>
+                <label>Borda: <input type="color" id="borderColorPicker" value="#ff00aa"></label>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <h3>Formato de Fotos</h3>
+            <div class="options-grid">
+                <button class="menu-btn selected" onclick="setMode(1, this)">1 Foto</button>
+                <button class="menu-btn" onclick="setMode(2, this)">2 Fotos (Grade)</button>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <h3>Filtro Visual</h3>
+            <div class="options-grid">
+                <button class="menu-btn selected" onclick="setFilter('glow', this)">Brilho Glow</button>
+                <button class="menu-btn" onclick="setFilter('bw', this)">Preto & Branco</button>
+                <button class="menu-btn" onclick="setFilter('neon', this)">Neon Extremo</button>
+            </div>
+        </div>
+
+        <button class="start-btn" onclick="startCamera()">Ligar Câmera</button>
+    </div>
+
+    <!-- 2. TELA DA CÂMERA -->
+    <div id="camera-screen" class="screen">
+        <div class="camera-container" id="camera-container">
+            <video id="video" class="filter-glow" autoplay playsinline muted></video>
+            
+            <div id="countdown">3</div>
+
+            <div class="camera-overlay">
+                <button class="shutter-btn" onclick="triggerCaptureSequence()" title="Tirar Foto"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. TELA DE RESULTADO -->
+    <div id="result-screen" class="screen">
+        <div class="photo-strip" id="printable-strip">
+            <div id="grid-preview" class="grid-container"></div>
+        </div>
+
+        <div class="action-buttons">
+            <button class="action-btn btn-retry" onclick="retakePhotos()">🔄 Denovo</button>
+            <button class="action-btn btn-print" onclick="window.print()">🖨️ Imprimir</button>
+            <button class="action-btn btn-download" onclick="downloadStrip()">💾 Baixar</button>
+        </div>
+    </div>
+
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <script>
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let stream = null;
+        let photoCountMode = 1;
+        let currentFilter = 'glow';
+        let capturedPhotos = [];
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log("Erro ao ativar tela cheia:", err.message);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function toggleModal(show) {
+            const modal = document.getElementById('configModal');
+            if (show) modal.classList.add('show');
+            else modal.classList.remove('show');
+        }
+
+        function setTheme(themeName, btn) {
+            document.body.className = `theme-${themeName}`;
+            btn.parentElement.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+
+        function setMode(num, btn) {
+            photoCountMode = num;
+            btn.parentElement.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+
+        function setFilter(filterName, btn) {
+            currentFilter = filterName;
+            video.className = `filter-${filterName}`;
+            btn.parentElement.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+
+        async function startCamera() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('camera-screen').classList.add('active');
+
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" }, 
+                    audio: false 
+                });
+                video.srcObject = stream;
+            } catch (err) {
+                alert("Erro ao acessar a câmera. Verifique as permissões do navegador.");
+                resetAppToHome();
+            }
+        }
+
+        function retakePhotos() {
+            capturedPhotos = [];
+            startCamera();
+        }
+
+        async function triggerCaptureSequence() {
+            capturedPhotos = [];
+            const countdownEl = document.getElementById('countdown');
+            
+            for (let i = 0; i < photoCountMode; i++) {
+                countdownEl.style.display = 'block';
+                for (let c = 3; c > 0; c--) {
+                    countdownEl.innerText = c;
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                countdownEl.style.display = 'none';
+
+                await capturePhotoClean();
+
+                if (i < photoCountMode - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                }
+            }
+
+            stopCameraStream();
+            showResultScreen();
+        }
+
+        async function capturePhotoClean() {
+            canvas.width = 1200;
+            canvas.height = 900;
+            let ctx = canvas.getContext('2d');
+            
+            if (currentFilter === 'bw') {
+                ctx.filter = 'grayscale(100%) contrast(1.3)';
+            } else if (currentFilter === 'neon') {
+                ctx.filter = 'hue-rotate(90deg) saturate(2)';
+            } else {
+                ctx.filter = 'saturate(1.4) brightness(1.1)';
+            }
+
+            ctx.save();
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            capturedPhotos.push(canvas.toDataURL('image/png'));
+        }
+
+        function stopCameraStream() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        function showResultScreen() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('result-screen').classList.add('active');
+
+            let customBg = document.getElementById('bgColorPicker').value;
+            let customBorder = document.getElementById('borderColorPicker').value;
+            let strip = document.getElementById('printable-strip');
+            
+            strip.style.setProperty('--custom-bg', customBg);
+            strip.style.setProperty('--custom-border', customBorder);
+
+            let gridPreview = document.getElementById('grid-preview');
+            gridPreview.innerHTML = '';
+            gridPreview.className = `grid-container ${photoCountMode === 1 ? 'single' : ''}`;
+
+            capturedPhotos.forEach(src => {
+                let img = document.createElement('img');
+                img.src = src;
+                gridPreview.appendChild(img);
+            });
+        }
+
+        function resetAppToHome() {
+            stopCameraStream();
+            capturedPhotos = [];
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('home-screen').classList.add('active');
+        }
+
+        async function downloadStrip() {
+            let downloadCanvas = document.createElement('canvas');
+            let ctx = downloadCanvas.getContext('2d');
+            
+            let imgElements = document.querySelectorAll('#grid-preview img');
+            if (imgElements.length === 0) return;
+
+            let imgWidth = 1200;
+            let imgHeight = 900;
+            let padding = 100;
+            let gap = 50;
+
+            let customBg = document.getElementById('bgColorPicker').value;
+            let customBorder = document.getElementById('borderColorPicker').value;
+            let customPhrase = document.getElementById('customPhraseInput').value.trim();
+            let phrasePosition = document.getElementById('phrasePositionSelect').value;
+            let textColor = document.getElementById('textColorPicker').value;
+            let textShadowColor = document.getElementById('textShadowColorPicker').value;
+
+            // Coletar múltiplos símbolos selecionados
+            let selectedSymbols = [];
+            document.querySelectorAll('.symbols-grid input[type="checkbox"]:checked').forEach(cb => {
+                selectedSymbols.push(cb.value);
+            });
+
+            downloadCanvas.width = imgWidth + (padding * 2);
+            downloadCanvas.height = (imgHeight * imgElements.length) + (gap * (imgElements.length - 1)) + (padding * 2);
+
+            // Fundo
+            ctx.fillStyle = customBg;
+            ctx.fillRect(0, 0, downloadCanvas.width, downloadCanvas.height);
+
+            // Borda interna
+            ctx.strokeStyle = customBorder;
+            ctx.lineWidth = 16;
+            ctx.strokeRect(padding - 20, padding - 20, downloadCanvas.width - ((padding - 20) * 2), downloadCanvas.height - ((padding - 20) * 2));
+
+            // Desenhar fotos
+            let currentY = padding;
+            let firstPhotoY = padding;
+
+            for (let i = 0; i < imgElements.length; i++) {
+                let img = new Image();
+                img.src = imgElements[i].src;
+                await new Promise(resolve => { img.onload = resolve; });
+                
+                ctx.drawImage(img, padding, currentY, imgWidth, imgHeight);
+                currentY += imgHeight + gap;
+            }
+
+            // Renderizar Frase personalizada com cor e sombra escolhidas
+            if (customPhrase) {
+                ctx.font = "bold 44px sans-serif";
+                ctx.fillStyle = textColor;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.shadowColor = textShadowColor;
+                ctx.shadowBlur = 18;
+
+                let phraseX = downloadCanvas.width / 2;
+                let phraseY = padding / 2;
+
+                if (phrasePosition === 'top') {
+                    phraseY = padding / 2 + 10;
+                } else if (phrasePosition === 'middle' && imgElements.length > 1) {
+                    phraseY = firstPhotoY + imgHeight + (gap / 2);
+                } else if (phrasePosition === 'bottom') {
+                    phraseY = downloadCanvas.height - (padding / 2) - 10;
+                }
+
+                ctx.fillText(customPhrase, phraseX, phraseY);
+                ctx.shadowBlur = 0; // Limpa sombra
+            }
+
+            // Desenhar múltiplos símbolos alternados ao redor de toda a borda
+            if (selectedSymbols.length > 0) {
+                ctx.font = "45px sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+
+                let stepX = 75;
+                let stepY = 75;
+                let symIndex = 0;
+
+                // Borda Superior e Inferior
+                for (let x = 40; x < downloadCanvas.width; x += stepX) {
+                    let sym1 = selectedSymbols[symIndex % selectedSymbols.length];
+                    let sym2 = selectedSymbols[(symIndex + 1) % selectedSymbols.length];
+                    
+                    ctx.fillText(sym1, x, padding / 3);
+                    ctx.fillText(sym2, x, downloadCanvas.height - (padding / 3));
+                    symIndex++;
+                }
+
+                // Borda Esquerda e Direita
+                for (let y = 40; y < downloadCanvas.height; y += stepY) {
+                    let sym1 = selectedSymbols[symIndex % selectedSymbols.length];
+                    let sym2 = selectedSymbols[(symIndex + 1) % selectedSymbols.length];
+
+                    ctx.fillText(sym1, padding / 3, y);
+                    ctx.fillText(sym2, downloadCanvas.width - (padding / 3), y);
+                    symIndex++;
+                }
+            }
+
+            let link = document.createElement('a');
+            link.download = `selphy-personalizada-${Date.now()}.png`;
+            link.href = downloadCanvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>
